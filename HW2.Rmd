@@ -150,8 +150,8 @@ unique_songs_per_year <- filtered_data %>%
   group_by(year) %>%
   summarise(unique_songs = n_distinct(song_id))
 ggplot(unique_songs_per_year, aes(x = year, y = unique_songs)) + geom_line() + geom_point() + theme_minimal() + labs(title = "Musical Diversity in the Billboard Top 100 Over the Years", x = "Year", y = "Number of Unique Songs", caption = "Data Source: Billboard Top 100") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave("musical_diversity_over_years.png", width = 10, height = 6)
 ```
+
 ```{r, echo=FALSE}
 ten_week_hits <- billboard_data %>%
   group_by(performer, song_id) %>%
