@@ -116,8 +116,8 @@ print(p2)
 ```
 This scatter plot shows the relationship between temperature and boardings, faceted by hour of the day and colored by weekday/weekend status. When controlling for the hour of the day and whether it's a weekday or weekend, there seems to be a correlation between higher temperatures and increased boardings, suggesting that warmer weather might encourage more students to use the bus.
 
-## Question 4
 \newpage
+## Question 4
 
 
 
@@ -131,13 +131,15 @@ top_songs <- billboard_data %>%
   arrange(desc(count)) %>%
   top_n(10, count)
 styled_table <- top_songs %>%
-  kable(format = "latex", caption = "Top 10 Songs on Billboard with Their Counts") %>%
+  kable(format = "latex", caption = "Part A: Top 10 Songs on Billboard with Their Counts") %>%
   kableExtra::kable_styling(full_width = FALSE, position = "center") %>%
   kableExtra::column_spec(1, bold = TRUE, color = "white", background = "#0073e6") %>%
   kableExtra::row_spec(0, bold = TRUE, color = "white", background = "#0073e6")
 
 styled_table
 ```
+The table presents a descending order of songs based on their play counts, starting with Imagine Dragons' "Radioactive" at the top with 87 plays, and ending with Carrie Underwood's "Before He Cheats" with 64 plays. It highlights some of the most popular songs by various artists, indicating how frequently they have been played.
+
 
 \newpage
 
@@ -149,8 +151,11 @@ filtered_data <- billboard_data %>%
 unique_songs_per_year <- filtered_data %>%
   group_by(year) %>%
   summarise(unique_songs = n_distinct(song_id))
-ggplot(unique_songs_per_year, aes(x = year, y = unique_songs)) + geom_line() + geom_point() + theme_minimal() + labs(title = "Musical Diversity in the Billboard Top 100 Over the Years", x = "Year", y = "Number of Unique Songs", caption = "Data Source: Billboard Top 100") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggplot(unique_songs_per_year, aes(x = year, y = unique_songs)) + geom_line() + geom_point() + theme_minimal() + labs(title = "Part B: Musical Diversity in the Billboard Top 100 Over the Years", x = "Year", y = "Number of Unique Songs", caption = "Data Source: Billboard Top 100") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+This graph illustrates the number of unique songs that appeared in the Billboard Top 100 each year, serving as a proxy for musical diversity. There is a notable high point in the early 1960s, followed by a steep decline into the late 1980s, indicating a period of lower diversity. After the 1980s, there's a fluctuating increase with sharp peaks and troughs, suggesting periods of both consolidation and expansion in musical variety. The sharp increase in diversity in recent years, particularly noticeable in the 2020s, suggests a resurgence of unique songs entering the charts.
+
+\newpage
 
 ```{r, echo=FALSE}
 ten_week_hits <- billboard_data %>%
@@ -161,6 +166,6 @@ artist_hits <- ten_week_hits %>%
   group_by(performer) %>%
   summarise(ten_week_hits = n(), .groups = 'drop') %>%
   filter(ten_week_hits >= 30)
-ggplot(artist_hits, aes(x = reorder(performer, ten_week_hits), y = ten_week_hits)) + geom_bar(stat = "identity") + coord_flip() + labs(title = "Number of Ten-Week Hits by Artist in U.S. Musical History Since 1958", x = "Artist", y = "Number of Ten-Week Hits") + theme_minimal()
+ggplot(artist_hits, aes(x = reorder(performer, ten_week_hits), y = ten_week_hits)) + geom_bar(stat = "identity") + coord_flip() + labs(title = "Part C: Number of Ten-Week Hits by Artist in U.S. Since 1958", x = "Artist", y = "Number of Ten-Week Hits") + theme_minimal()
 ```
-This plot shows artists who have achieved at least 30 'ten-week hits' (songs on the Billboard Top 100 for at least ten weeks) in their career since 1958.
+This bar chart ranks artists by the number of their hits that have remained in the top charts for at least ten consecutive weeks in the United States. It shows a clear leader with almost 50 ten-week hits, followed by a tight cluster of artists with 20-30 hits each. The chart reflects both the enduring popularity and the significant impact of these artists on the music industry over time.
