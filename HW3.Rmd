@@ -1,6 +1,6 @@
 ---
 title: "HW3"
-author: "Varun Ramanathan, eid: vr23358"
+author: "Varun Ramanathan, eid: vr23358, https://github.com/vramanathan2005/SDS315/blob/main/HW3.Rmd"
 date: "2024-02-07"
 output: pdf_document
 geometry: margin=0.2in
