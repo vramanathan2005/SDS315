@@ -1,0 +1,113 @@
+---
+title: "HW3"
+author: "Varun Ramanathan, eid: vr23358"
+date: "2024-02-07"
+output: pdf_document
+geometry: margin=0.2in
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+```
+
+
+```{r, echo=FALSE, comment=NA}
+
+creatinine_data <- read.csv("/Users/varunramanathan/Downloads/creatinine.csv")
+model <- lm(creatclear ~ age, data = creatinine_data)
+predicted_rate_55 <- predict(model, newdata = data.frame(age = 55))
+age_coefficient <- coef(model)["age"]
+predicted_rate_40 <- predict(model, newdata = data.frame(age = 40))
+predicted_rate_60 <- predict(model, newdata = data.frame(age = 60))
+cat("A) Expected creatinine clearance rate for a 55-year-old:", predicted_rate_55, "\n")
+cat("B) Change in creatinine clearance rate with age:", age_coefficient, "\n")
+cat("C) For a 40-year-old:", predicted_rate_40, "\n", "  For a 60-year-old:", predicted_rate_60)
+```
+A) I used a linear regression model with creatclear as the dependent variable and age as the independent variable. The expected clearance rate for a 55-year-old is calculated using the regression equation, resulting in approximately 113.72 mL/minute.
+B) The coefficient of age in the linear regression model represents the change in creatinine clearance rate per year. In this case, the rate decreases by about 0.62 mL/minute for each additional year of age.
+C) To determine whose creatinine clearance rate is healthier for their age between a 40-year-old with a rate of 135 and a 60-year-old with a rate of 112, we compare the predicted rates from the linear regression model to the actual rates provided. The model gives us expected rates for ages 40 and 60, and we assess healthiness by how much an individual's rate deviates from the expected. Generally, a higher clearance rate indicates better kidney function. If the actual rate is higher than the predicted rate for their age, it suggests better kidney health relative to age. Without specific model output, we can't calculate exact values but the approach involves comparing the observed rates to the age-predicted rates to see which age group's observed value is further above their predicted norm.
+
+\newpage
+```{r, echo=FALSE, comment=NA}
+market_data <- read.csv("/Users/varunramanathan/Downloads/marketmodel.csv")
+perform_regression <- function(stock_symbol) {
+  model <- lm(formula = paste(stock_symbol, "~ SPY"), data = market_data)
+  intercept <- coef(model)[1]
+  beta <- coef(model)[2]
+  r_squared <- summary(model)$r.squared
+  return(list(Intercept = intercept, Beta = beta, R_squared = r_squared))
+}
+stocks <- c('AAPL', 'GOOG', 'MRK', 'JNJ', 'WMT', 'TGT')
+regression_results_list <- lapply(stocks, perform_regression)
+regression_results_df <- bind_rows(regression_results_list) %>%
+  mutate(Ticker = stocks) %>%
+  select(Ticker, everything())
+cat("Introduction:\n")
+cat("In my analysis of financial markets, I've come to understand that the 'beta' of a stock is a measure of its", "\n", "volatility relative to the overall market. A beta greater than 1 indicates that the stock is more volatile ", "\n", "than the market, while a beta less than 1 suggests it is less volatile. To quantify this relationship, ", "\n", "I use regression modeling, where the stock's return is regressed against the market's return to derive beta.", "\n", "The beta coefficient, as the slope of the regression line, reveals the stock's sensitivity to market movements. A higher beta signifies a strong correlation with market movements", "\n", ", whereas a lower beta indicates less sensitivity.\n\n")
+cat("\n\n")
+cat("Regression Results:\n")
+print(as.data.frame(regression_results_df))
+cat("This table presents the regression outcomes for each stock, including the ticker symbol, intercept, beta, and ", "\n", "R-squared values. The beta value is particularly telling, as it quantifies each stock's systematic risk relative", "\n", " to the market. The R-squared value helps me understand how much of the stock's movements can be explained ", "\n", "by movements in the market.\n\n")
+cat("\n\n")
+lowest_beta <- regression_results_df %>%
+  arrange(Beta) %>%
+  slice(1) %>%
+  pull(Ticker)
+highest_beta <- regression_results_df %>%
+  arrange(desc(Beta)) %>%
+  slice(1) %>%
+  pull(Ticker)
+cat("Conclusion:\n")
+cat("Based on my regression analysis, the stock with the lowest systematic risk is ", lowest_beta, ". This means it's less affected", "\n", "by market-wide fluctuations. Conversely, the stock with the highest systematic risk is ", highest_beta, ". This indicates", "\n", "it's more susceptible to market movements, showing a higher volatility compared to the market.\n")
+```
+\newpage
+
+```{r covid-analysis, echo=FALSE, message=FALSE, warning=FALSE, comment = NA}
+library(tidyverse)
+covid_data <- read.csv('/Users/varunramanathan/Downloads/covid.csv')
+italy_data <- covid_data %>% filter(country == "Italy")
+spain_data <- covid_data %>% filter(country == "Spain")
+fit_italy <- nls(deaths ~ exp(a + b * days_since_first_death), data = italy_data, 
+                 start = list(a = log(min(italy_data$deaths)), b = 0.1))
+fit_spain <- nls(deaths ~ exp(a + b * days_since_first_death), data = spain_data, 
+                 start = list(a = log(min(spain_data$deaths)), b = 0.1))
+coef_italy <- coef(fit_italy)
+coef_spain <- coef(fit_spain)
+growth_rate_italy <- coef_italy["b"]
+doubling_time_italy <- log(2) / growth_rate_italy
+growth_rate_spain <- coef_spain["b"]
+doubling_time_spain <- log(2) / growth_rate_spain
+cat("Estimated growth rate for Italy:", round(growth_rate_italy, 3), "\n")
+cat("Doubling time for Italy (days):", round(doubling_time_italy), "\n")
+cat("Estimated growth rate for Spain:", round(growth_rate_spain, 3), "\n")
+cat("Doubling time for Spain (days):", round(doubling_time_spain), "\n")
+italy_data$Predicted <- predict(fit_italy, italy_data)
+spain_data$Predicted <- predict(fit_spain, spain_data)
+ggplot() + 
+  geom_line(data = italy_data, aes(x = days_since_first_death, y = deaths, color = "Italy")) + 
+  geom_line(data = spain_data, aes(x = days_since_first_death, y = deaths, color = "Spain")) + 
+  labs(title = "COVID-19 Daily Deaths Over Time",
+       x = "Days Since First Death",
+       y = "Number of Deaths",
+       color = "Country") +
+  theme_minimal()
+```
+\newpage
+```{r, echo=FALSE, comment=NA}
+milk <- read.csv("milk.csv")
+power_law <- function(P, K, beta) {
+  K * P^beta
+}
+fit <- nls(sales ~ power_law(price, K, beta), data = milk, start = list(K = 1, beta = -0.5))
+K_estimate <- coef(fit)["K"]
+beta_estimate <- coef(fit)["beta"]
+cat("Estimated price elasticity for milk:", beta_estimate, "\n")
+```
+The estimated price elasticity of demand for milk, based on the non-linear regression analysis using the power law model, is approximately -1.77. This indicates that demand for milk is elastic, meaning that a 1% increase in price would result in about a 1.77% decrease in quantity demanded. The negative sign is typical for elasticity, denoting the inverse relationship between price and demand.
