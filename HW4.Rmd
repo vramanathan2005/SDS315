@@ -1,6 +1,6 @@
 ---
 title: "HW4"
-author: "Varun Ramanathan, eid: vr23358, github:"
+author: "Varun Ramanathan, eid: vr23358, github: https://github.com/vramanathan2005/SDS315/blob/main/HW4.Rmd"
 date: "2024-02-19"
 output: pdf_document
 ---
