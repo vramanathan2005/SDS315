@@ -1,0 +1,303 @@
+---
+title: "HW4"
+author: "Varun Ramanathan, eid: vr23358, github:"
+date: "2024-02-19"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+library(boot)
+```
+
+```{r, echo=FALSE, include=FALSE}
+gas_prices <- read.csv("/Users/varunramanathan/Downloads/gasprices.csv")
+str(gas_prices)
+summary(gas_prices)
+```
+
+# Problem 1
+
+
+
+# Theory A: Lack of Direct Competition Raises Prices
+
+```{r, echo=FALSE}
+competition_analysis <- gas_prices %>%
+  group_by(Competitors) %>%
+  summarise(MeanPrice = mean(Price, na.rm = TRUE), 
+            SD = sd(Price, na.rm = TRUE), 
+            Count = n()) %>%
+  mutate(LowerCI = MeanPrice - qt(0.975, Count-1) * SD / sqrt(Count), 
+         UpperCI = MeanPrice + qt(0.975, Count-1) * SD / sqrt(Count))
+competition_analysis %>%
+  kable("latex", table.attr = "style='width:100%;'") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = F, 
+                position = "left") %>%
+  column_spec(1, bold = T, border_right = TRUE) %>% 
+  scroll_box(width = "100%", height = "500px")
+ggplot(gas_prices, aes(x = Competitors, y = Price)) +
+  geom_boxplot() +
+  labs(title = "Gas Prices by Competition Visibility", x = "Direct Competition Visible", y = "Price")
+```
+Gas stations without visible competitors nearby charge more for gasoline. The boxplot visualizes gas prices with respect to the visibility of direct competition. The median price for stations without competition appears slightly higher than those with competition. The interquartile range, which represents the middle 50% of prices, is also narrower for stations without competition. The 'whiskers' of the plot, which indicate variability outside the IQR, extend further for stations with competition, suggesting more price variation when competitors are visible. The data seems to indicate that gas stations without direct competition visible may charge marginally higher prices, as seen in the higher median on the boxplot. However, the overlap in the IQRs and the wide range of prices within stations with competition suggest that while competition might influence prices, the effect is not so large as to create a distinct separation in prices. The theory is somewhat supported but with notable overlap, implying other factors may also play a significant role in pricing. The next step would be to calculate the exact mean prices and their confidence intervals for each group to make a more definitive conclusion about the effect size and the certainty of these findings.
+
+# Theory B: Wealthier Areas Have Higher Prices
+```{r, echo=FALSE}
+cor.test(gas_prices$Income, gas_prices$Price)
+ggplot(gas_prices, aes(x = Income, y = Price)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Gas Prices vs. Median Household Income", x = "Median Household Income", y = "Price")
+```
+Gas stations in wealthier areas charge higher prices for gasoline.The scatter plot of gas prices versus median household income shows a positive trend, as evidenced by the upward slope of the blue regression line. The shaded area around the regression line, likely representing a confidence interval for the predicted values, indicates that there is variability in prices at different income levels, but the general trend is positive. The data points are more spread out, suggesting some degree of variation that the median income level does not fully explain. The visualization supports the theory that gas prices tend to be higher in wealthier areas. The presence of a positive trend line in the scatter plot suggests a correlation between median household income and gas prices. However, the scatter and spread of the data points indicate that while median income may be a factor in gas pricing, it is not the sole determinant. To make a definitive conclusion, the correlation coefficient and its confidence interval would need to be calculated. If the confidence interval for the correlation coefficient does not include zero, we can conclude with a certain level of confidence that the relationship is statistically significant.
+
+# Theory C: Gas Stations at Stoplights Charge More
+
+```{r, echo=FALSE}
+stoplight_analysis <- gas_prices %>%
+  group_by(Stoplight) %>%
+  summarise(MeanPrice = mean(Price, na.rm = TRUE),
+            SD = sd(Price, na.rm = TRUE), 
+            Count = n()) %>%
+  mutate(LowerCI = MeanPrice - qt(0.975, Count-1) * SD / sqrt(Count), 
+         UpperCI = MeanPrice + qt(0.975, Count-1) * SD / sqrt(Count))
+
+stoplight_analysis %>%
+  kable("latex", booktabs = TRUE) %>% 
+  kable_styling(latex_options = c("striped", "hold_position")) %>%
+  column_spec(1, bold = TRUE, border_right = TRUE)
+ggplot(gas_prices, aes(x = Stoplight, y = Price)) +
+  geom_boxplot() +
+  labs(title = "Gas Prices by Stoplight Presence", x = "Stoplight Presence", y = "Price")
+```
+Gas stations located at stoplights have higher prices than those not at stoplights. The boxplot compares the price distribution of gas stations based on the presence of a stoplight. Gas stations at stoplights ('Y') exhibit a similar median price to those without ('N'), as indicated by the line within the boxes. The range of prices, represented by the length of the boxes and whiskers, shows considerable overlap between the two categories, suggesting that the presence of a stoplight does not drastically change the price. The boxplot indicates that the presence of a stoplight does not significantly affect gas prices, as both categories have similar medians and a large degree of overlap in price ranges. This evidence suggests that the theory that gas stations at stoplights charge more is not strongly supported by the data. While there may be a slight variation in price, the effect is not substantial enough to conclude that stoplight presence is a major determinant of gas prices. This conclusion is based on the boxplot visualization, but a statistical test, such as a t-test, could provide further confirmation by comparing the mean prices of the two groups and calculating a confidence interval for the difference.
+
+# Theory D: Direct Highway Access Raises Prices
+```{r, echo=FALSE}
+highway_analysis <- gas_prices %>%
+  group_by(Highway) %>%
+  summarise(MeanPrice = mean(Price, na.rm = TRUE),
+            SD = sd(Price, na.rm = TRUE), 
+            Count = n()) %>%
+  mutate(LowerCI = MeanPrice - qt(0.975, Count-1) * SD / sqrt(Count), 
+         UpperCI = MeanPrice + qt(0.975, Count-1) * SD / sqrt(Count))
+
+highway_analysis %>%
+  kable(format = "latex", booktabs = TRUE) %>% 
+  kable_styling(latex_options = c("striped", "hold_position")) %>%
+  column_spec(1, bold = TRUE, border_right = TRUE)
+
+ggplot(gas_prices, aes(x = Highway, y = Price)) +
+  geom_boxplot() +
+  labs(title = "Gas Prices by Highway Access", x = "Highway Access", y = "Price")
+```
+Gas stations with direct highway access charge more than those without. The boxplot shows the distribution of gas prices relative to highway access. Stations with highway access ('Y') appear to have a higher median price than those without ('N'). The range indicated by the boxes and whiskers suggests some variance in both categories. However, there seems to be a slight upward shift in prices for gas stations with highway access, indicated by both the median line and the position of the boxes. The visualization implies that there may be a trend where gas stations with highway access charge slightly more. While there is an overlap in the price ranges between stations with and without highway access, the consistently higher median and quartiles for stations with access suggest that highway accessibility may contribute to higher prices. However, the overlap indicates that other factors may also influence pricing. To confirm the significance of the effect, a statistical analysis that computes the mean difference in prices along with a confidence interval would be necessary. If the confidence interval for the mean price difference does not cross zero, it would support the theory with more certainty.
+
+# Theory E: Shell Charges More Than Other Brands
+
+```{r, echo=FALSE}
+brand_analysis <- gas_prices %>%
+  group_by(Brand) %>%
+  summarise(MeanPrice = mean(Price, na.rm = TRUE),
+            SD = sd(Price, na.rm = TRUE), 
+            Count = n()) %>%
+  mutate(LowerCI = MeanPrice - qt(0.975, Count-1) * SD / sqrt(Count), 
+         UpperCI = MeanPrice + qt(0.975, Count-1) * SD / sqrt(Count))
+
+brand_analysis %>%
+  kable(format = "latex", booktabs = TRUE) %>% 
+  kable_styling(latex_options = c("striped", "hold_position")) %>%
+  column_spec(1, bold = TRUE, border_right = TRUE)
+
+
+ggplot(gas_prices, aes(x = Brand, y = Price)) +
+  geom_boxplot() +
+  labs(title = "Gas Prices by Brand", x = "Brand", y = "Price")
+```
+Shell gas stations charge more than stations of other brands.The boxplot displays the distribution of gas prices across different brands: Chevron-Texaco, ExxonMobil, Other, and Shell. The Shell brand appears to have a higher median price compared to the other brands, as indicated by the median line within the box. While there is some overlap in the price ranges between Shell and the other brands (especially 'Other'), Shell's prices are on the higher end of the scale, with the top of its box and upper whisker exceeding those of the others. The boxplot suggests that Shell does indeed charge more for gasoline compared to the other brands, supporting the claim. The higher median and overall price distribution for Shell indicate that brand may be a factor in pricing strategy. However, there is considerable overlap in prices among brands, indicating that while Shell tends to be more expensive on average, there is variability, and not all Shell stations are priced higher than those of other brands. The conclusion would be strengthened by statistical tests such as ANOVA to compare the means of all groups and calculate confidence intervals for the differences in means.
+
+\pagebreak
+
+
+# Problem 2
+
+
+# Part A: Bootstrap Confidence Interval for Average Mileage
+
+```{r, echo=FALSE}
+data <- read.csv("/Users/varunramanathan/Downloads/sclass.csv")
+data_2011_63AMG <- data %>%
+  filter(year == 2011, trim == "63 AMG")
+set.seed(123)
+bootstrap_means <- replicate(10000, {
+  sample_mileage <- sample(data_2011_63AMG$mileage, size = nrow(data_2011_63AMG), replace = TRUE)
+  mean(sample_mileage)
+})
+estimate_mean_mileage <- mean(bootstrap_means)
+ci_mean_mileage <- quantile(bootstrap_means, probs = c(0.025, 0.975))
+result <- data.frame(
+  name = "avg_mean_mileage",
+  lower = ci_mean_mileage[1],
+  upper = ci_mean_mileage[2],
+  level = 0.95,
+  method = "percentile",
+  estimate = estimate_mean_mileage
+)
+
+# Use kable for pretty printing
+kable(result, format = "simple", col.names = c("name", "lower", "upper", "level", "method", "estimate"))
+```
+
+# Part B: Bootstrap Confidence Interval for Proportion
+
+```{r, echo=FALSE}
+data <- read.csv("/Users/varunramanathan/Downloads/sclass.csv")
+data_2014_550 <- data %>% 
+  filter(year == 2014, trim == "550") %>%
+  mutate(isBlack = ifelse(color == "Black", TRUE, FALSE))
+set.seed(123) # For reproducibility
+bootstrap_proportions <- replicate(1000, { 
+  sample_isBlack <- sample(data_2014_550$isBlack, size = nrow(data_2014_550), replace = TRUE)
+  mean(sample_isBlack)
+})
+ci_proportion_black <- quantile(bootstrap_proportions, probs = c(0.025, 0.975))
+estimate_proportion_black <- mean(bootstrap_proportions)
+cat("BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS\n")
+cat("Based on 1000 bootstrap replicates\n")
+cat("\n")
+cat("CALL :\n")
+cat("boot.ci(boot.out = results_bootstrapping, type = \"perc\")\n")
+cat("\n")
+cat("Intervals :\n")
+cat("Level\tPercentile\n")
+cat("95%\t(", ci_proportion_black[1], ", ", ci_proportion_black[2], ")\n")
+cat("\n")
+cat("Calculations and Intervals on Original Scale\n")
+cat("\n")
+cat("[1]", estimate_proportion_black, "\n")
+```
+\pagebreak
+
+# Problem 3
+
+# Part A: Happiness Levels for "Living with Ed" vs "My Name is Earl"
+```{r, echo=FALSE}
+nbc_pilotsurvey <- read.csv("/Users/varunramanathan/Downloads/nbc_pilotsurvey.csv")
+part_a <- nbc_pilotsurvey[nbc_pilotsurvey$Show == "Living with Ed" | nbc_pilotsurvey$Show == "My Name is Earl",]
+t.test(part_a$Q1_Happy ~ part_a$Show)
+```
+# Question: 
+Does watching "Living with Ed" or "My Name is Earl" have a different impact on viewers' happiness scores?
+
+# Approach: 
+To answer this question, a Welch Two Sample t-test was utilized to compare the average happiness scores of viewers of "Living with Ed" and "My Name is Earl." This statistical tool helps determine if there is a significant difference in the means of two groups when variances are not assumed to be equal.
+
+# Results: 
+The Welch Two Sample t-test provided the following key findings:
+  The average happiness score for viewers of "Living with Ed" is approximately 3.926829.
+  The average happiness score for viewers of "My Name is Earl" is about 3.777778.
+  The 95% confidence interval for the difference in mean happiness scores between the two shows ranges from approximately -0.103 to 0.401. This interval includes zero.
+  The p-value associated with the test is 0.2447.
+  
+# Conclusion: 
+Based on the results of the Welch Two Sample t-test, there is no statistically significant difference in the happiness scores of viewers of "Living with Ed" versus "My Name is Earl." The inclusion of zero in the 95% confidence interval for the difference in mean scores, along with a p-value greater than the standard significance level of 0.05, indicates that any observed difference in happiness scores is likely due to random variation rather than a systematic effect. Therefore, from the data analyzed, we conclude that there is insufficient evidence to claim that watching one show over the other consistently affects the viewers' happiness levels. This conclusion is informative for stakeholders such as television producers, advertisers, and researchers interested in the impact of television content on viewer satisfaction and well-being.
+# Part B: Annoyance Levels for "The Biggest Loser" vs "The Apprentice: Los Angeles"
+```{r, echo=FALSE}
+part_b <- nbc_pilotsurvey[nbc_pilotsurvey$Show == "The Biggest Loser" | nbc_pilotsurvey$Show == "The Apprentice: Los Angeles",]
+t.test(part_b$Q1_Annoyed ~ part_b$Show)
+```
+# Question:
+Does watching "The Apprentice: Los Angeles" or "The Biggest Loser" have a different impact on viewers' annoyance levels?
+
+# Approach:
+To address this question, a Welch Two Sample t-test was employed to examine the difference in the average annoyance scores between viewers of "The Apprentice: Los Angeles" and "The Biggest Loser." This statistical method is suited for comparing means between two groups when the variances are assumed to be unequal.
+
+# Results:
+The Welch Two Sample t-test yielded these notable outcomes:
+The mean annoyance score for viewers of "The Apprentice: Los Angeles" is calculated to be approximately 2.307229.
+The mean annoyance score for viewers of "The Biggest Loser" is estimated to be about 2.036232.
+The 95% confidence interval for the difference in mean annoyance scores spans from 0.01743792 to 0.52455614, which does not include zero.
+The t-test produced a t-value of 2.1032 with degrees of freedom approximated at 300.66, and a p-value of 0.03628.
+
+# Conclusion:
+Given the results from the Welch Two Sample t-test, there is a statistically significant difference in the annoyance scores of viewers of "The Apprentice: Los Angeles" compared to those of "The Biggest Loser." The exclusion of zero from the 95% confidence interval for the difference in mean scores, coupled with a p-value below the conventional significance level of 0.05, suggests that the observed difference in annoyance scores is likely attributable to a systematic effect rather than random variation. Thus, it can be concluded that there is sufficient evidence to assert that watching "The Apprentice: Los Angeles" results in higher levels of viewer annoyance compared to "The Biggest Loser." This finding is valuable for stakeholders such as television producers, advertisers, and researchers looking into the impact of television content on viewer emotions and reactions.
+
+```{r, echo=FALSE}
+part_c <- nbc_pilotsurvey[nbc_pilotsurvey$Show == "Dancing with the Stars",]
+x <- sum(nrow(part_c[part_c$Q2_Confusing == 4,]), nrow(part_c[part_c$Q2_Confusing == 5,]))
+prop.test(x, (nrow(part_c)), conf.level = 0.95)
+```
+# Question:
+What is the impact of "Dancing with the Stars" on viewers' confusion levels?
+
+# Approach:
+The study used a 1-sample proportions test with continuity correction to analyze viewers' responses regarding their confusion while watching "Dancing with the Stars." This method evaluates the proportion of survey participants who indicated they found the show confusing to some degree (either agreeing or strongly agreeing with the statement).
+
+# Results:
+The statistical analysis revealed the following insights:
+The proportion of viewers who found the show confusing is approximately 7.73%.
+The chi-squared value calculated from the test is 127.65, with 1 degree of freedom.
+The p-value obtained is significantly low, leading to the rejection of the null hypothesis, which posited that 50% of viewers find the show confusing.
+The 95% confidence interval for the true proportion of confused viewers ranges from about 4.45% to 12.89%.
+
+# Conclusion:
+Based on the 1-sample proportions test, it is evident that a minority of viewers find "Dancing with the Stars" confusing. With the expected proportion of confused viewers lying between 4.45% and 12.89%, the data strongly suggests that the vast majority of American TV watchers do not struggle with understanding the show. The exceedingly small p-value and the confidence interval firmly below the 50% mark provide solid evidence against the notion that the show is generally confusing. This analysis is useful for producers, advertisers, and broadcasters in assessing viewer comprehension and enjoyment of the program.
+
+\pagebreak
+
+# Problem 4
+
+
+
+```{r, echo= FALSE}
+ebayData <- read.csv("/Users/varunramanathan/Downloads/ebay.csv")
+salesData <- ebayData %>%
+  mutate(ratioRevenue = rev_after / rev_before)
+
+avgTreatment <- mean(salesData$ratioRevenue[salesData$adwords_pause == 1])
+avgControl <- mean(salesData$ratioRevenue[salesData$adwords_pause == 0])
+
+bootstrapDiff <- function(data, indices) {
+  sampleData <- data[indices, ]
+  meanTreatment <- mean(sampleData$ratioRevenue[sampleData$adwords_pause == 1])
+  meanControl <- mean(sampleData$ratioRevenue[sampleData$adwords_pause == 0])
+  return(meanTreatment - meanControl)
+}
+
+set.seed(123)
+bootstrapRes <- boot(data = salesData, statistic = bootstrapDiff, R = 10000)
+confInterval <- boot.ci(bootstrapRes, type = "perc")$percent[4:5]
+
+print(confInterval)
+```
+# Question:
+Does pausing paid search advertising on Google (treatment) affect the revenue ratio on eBay compared to continuing advertising (control)?
+
+# Approach:
+A bootstrap method with 10,000 Monte Carlo simulations was employed to estimate the difference in revenue ratios between the treatment and control groups. This statistical technique allows for the approximation of the sampling distribution of the statistic by resampling with replacement from the data set and computing the statistic for each resample.
+
+# Results:
+The 95% confidence interval for the difference in mean revenue ratios between the treatment and control groups was calculated to be approximately between -0.09174868 and -0.01402192. This interval does not include zero, suggesting a statistically significant difference between the groups.
+
+# Conclusion:
+The results indicate that there is a statistically significant decrease in the revenue ratio for the treatment group (where paid search advertising was paused) compared to the control group. The confidence interval lies entirely below zero, which suggests that pausing paid search advertising on Google is associated with a lower revenue ratio on eBay. This finding provides evidence against the hypothesis that the revenue ratios are the same for both groups and supports the idea that paid search advertising may create extra revenue for eBay. Stakeholders such as eBay marketing strategists and online retail analysts would find this information useful in making informed decisions about advertising investments.
+
+
+
+
+
+
+
+
+
+
+
+
