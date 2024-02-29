@@ -1,0 +1,140 @@
+---
+title: "HW5"
+author: "Varun Ramanathan, eid: vr23358, github: https://github.com/vramanathan2005/SDS315/blob/main/HW5.Rmd"
+date: "2024-02-29"
+output: pdf_document
+geometry: margin=0.2in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+library(knitr)
+library(dplyr)
+library(tibble)
+library(boot)
+```
+
+# Problem 1
+
+Null Hypothesis: The rate of trades that are flagged at Iron Bank is being tested to see if it is the same as the baseline rate, which is 2.4%.
+
+Test Statistic: Based on the null hypothesis, our test statistic will be the absolute difference between the observed and expected number of flagged trades, respectively.
+
+```{r, echo=FALSE, include=TRUE}
+test_statistics <- numeric(100000)
+for (i in 1:100000) {
+  flagged <- rbinom(1, 2021, 0.024)
+  test_statistics[i] <- abs(flagged - 70)
+}
+expected_diff <- 70 - (2021 * 0.024)
+prob_distribution <- hist(test_statistics, col = "green", main = "Probability Distribution of Iron Bank Flagged Trade Test Statistic", xlab = "Test Statistic", ylab = "Frequency")
+abline(v = abs(expected_diff), col = "red")
+p_value <- mean(test_statistics >= abs(expected_diff))
+```
+
+In the depicted plot, the observed test statistic consistently centers around the 47-48 range.
+
+The computed p-value is approximately 2x10^-5, significantly below the conventional significance level of 0.05.
+
+In light of these results, we confidently reject the null hypothesis. Our findings strongly indicate that the rate of flagged trades deviates substantially from the baseline rate for other traders. The remarkably low p-value provides robust evidence supporting this conclusion.
+
+\newpage
+
+# Problem 2
+
+Null Hypothesis (H0): The rate of health code violations at Gourmet Bites is consistent with the citywide average of 3%.
+
+Alternative Hypothesis (H1): The rate of health code violations at Gourmet Bites is significantly higher than the citywide average of 3%.
+
+Test Statistic: The test statistic for this problem can be the number of health code violations in a given number of inspections at Gourmet Bites.
+
+
+```{r, echo=FALSE, include=TRUE}
+simulated_stats <- numeric(100000)
+for (i in 1:100000) {
+  simulated_violations <- rbinom(1, 50, 0.03)
+  simulated_stats[i] <- abs(simulated_violations - 8)
+}
+expected_violations <- 50 * 0.03
+hist(simulated_stats, col = 'orange', main = "Probability Distribution of Gourmet Bites Health Inspection Test Statistic", xlab = "Test Statistic", ylab = "Frequency")
+abline(v = abs(expected_violations), col = "red")
+p_value_problem_2 <- mean(simulated_stats >= abs(expected_violations))
+```
+
+In the depicted plot, the observed test statistic consistently centers around the 1-1.3 range.
+
+The computed p-value is approximately 0.9992, significantly greater than the conventional significance level of 0.05.
+
+Based on these findings, we cannot reject the null hypothesis. The evidence suggests that the rate of health code violations at Gourmet Bites is quite consistent with the citywide average of 3%. This conclusion is well-supported by the very high p-value, reinforcing the similarity between Gourmet Bites and the citywide average in terms of health code violations.
+
+\newpage
+
+# Problem 3
+
+```{r, echo=FALSE, include=TRUE}
+## Part A
+calculate_chi_square_part_a <- function(sentence, freq_table) {
+  freq_table$Probability <- freq_table$Probability / sum(freq_table$Probability)
+  cleaned_sentence <- gsub("[^A-Za-z]", "", sentence)
+  cleaned_sentence <- toupper(cleaned_sentence)
+  letter_counts = table(factor(strsplit(cleaned_sentence, "")[[1]], levels = freq_table$Letter))
+  total_letters = sum(letter_counts)
+  expected_letter_counts = total_letters * freq_table$Probability
+  chi_square_value <- sum((letter_counts - expected_letter_counts)^2 / expected_letter_counts)
+  return(chi_square_value)
+}
+chi_squares_part_a <- numeric(0)
+sentences_part_a <- readLines("brown_sentences.txt")
+letter_frequencies_part_a <- read.csv("letter_frequencies.csv")
+count_a = 1
+for (i in sentences_part_a) {
+  calculated_chi_square <- calculate_chi_square_part_a(i, letter_frequencies_part_a)
+  chi_squares_part_a[count_a] <- calculated_chi_square
+  count_a = count_a + 1
+}
+## Part B
+calculate_chi_square_part_b <- function(sentence, freq_table, null_dist) {
+  freq_table$Probability <- freq_table$Probability / sum(freq_table$Probability)
+  cleaned_sentence <- gsub("[^A-Za-z]", "", sentence)
+  cleaned_sentence <- toupper(cleaned_sentence)
+  letter_counts <- table(factor(strsplit(cleaned_sentence, "")[[1]], levels = freq_table$Letter))
+  total_letters <- sum(letter_counts)
+  expected_letter_counts <- total_letters * freq_table$Probability
+  chi_square_value <- sum((letter_counts - expected_letter_counts)^2 / expected_letter_counts)
+  p_value_value <- mean(null_dist >= chi_square_value)
+  return(list(chi_square = chi_square_value, p_value = p_value_value))
+}
+sentences_part_b <- readLines("brown_sentences.txt")
+letter_frequencies_part_b <- read.csv("letter_frequencies.csv")
+null_distribution_part_b <- numeric(0)
+for (i in sentences_part_b) {
+  calculated_chi_square_part_b <- calculate_chi_square_part_a(i, letter_frequencies_part_b)
+  null_distribution_part_b <- c(null_distribution_part_b, calculated_chi_square_part_b)
+}
+provided_sentences_part_b <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+p_values_part_b <- numeric(length(provided_sentences_part_b))
+chi_squares_part_b <- numeric(length(provided_sentences_part_b))
+for (i in 1:length(provided_sentences_part_b)) {
+  result_part_b <- calculate_chi_square_part_b(provided_sentences_part_b[i], letter_frequencies_part_b, null_distribution_part_b)
+  chi_squares_part_b[i] <- result_part_b$chi_square
+  p_values_part_b[i] <- result_part_b$p_value
+}
+p_values_table_part_b <- data.frame(Sentence = provided_sentences_part_b, P_Value = round(p_values_part_b, 3))
+kable(p_values_table_part_b, align = c("l", "r"), col.names = c("Sentence", "P-Value"), caption = "P-values for Given Ten Sentences")
+```
+
+I think that Sentence 6 was produced by a Language Model (LLM) with a subtle watermark. This inclination is supported by its remarkably low p-value of 0.009. Additionally, a closer examination reveals that Sentence 6 displays a more intricate and extended structure compared to others. This heightened complexity likely stems from intentional modifications introduced by the LLM during the watermarking process.
+
