@@ -1,0 +1,132 @@
+---
+title: "HW9"
+author: "Varun Ramanathan, eid: vr23358, [https://github.com/vramanathan2005/SDS315/](https://github.com/vramanathan2005/SDS315/blob/main/HW9.Rmd)"
+date: "2024-04-18"
+output: pdf_document
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(MatchIt)
+```
+# Problem 1: Get out the vote
+# Part A
+```{r, echo=FALSE}
+turnout_data <- read.csv('/Users/varunramanathan/Downloads/turnout.csv')
+gotv_voted <- turnout_data %>%
+  filter(GOTV_call == 1) %>%
+  summarise(Proportion_Voted = mean(voted1998))
+no_gotv_voted <- turnout_data %>%
+  filter(GOTV_call == 0) %>%
+  summarise(Proportion_Voted = mean(voted1998))
+prop_test_results <- prop.test(x = c(sum(turnout_data$GOTV_call == 1 & turnout_data$voted1998 == 1),
+                                     sum(turnout_data$GOTV_call == 0 & turnout_data$voted1998 == 1)),
+                               n = c(sum(turnout_data$GOTV_call == 1), sum(turnout_data$GOTV_call == 0)),
+                               correct = FALSE)
+estimate <- prop_test_results$estimate
+conf_int <- prop_test_results$conf.int
+p_value <- prop_test_results$p.value
+cat(" Proportion of voters who received a GOTV call and voted in 1998:", round(estimate[1], 4), "\n",
+    "Proportion of voters who did not receive a GOTV call and voted in 1998:", round(estimate[2], 4), "\n",
+    "95% Confidence Interval for the difference in proportions:", 
+    "[", round(conf_int[1], 4), ",", round(conf_int[2], 4), "]", "\n",
+    "P-value for the test of equal proportions:", format.pval(p_value, digits = 4), "\n\n")
+```
+
+
+In analyzing the impact of 'get out the vote' calls on voter turnout in the 1998 Congressional elections, the data revealed a significant effect. Voters who received a GOTV call were significantly more likely to vote, with a voting rate of approximately 64.8%, compared to a 44.4% voting rate among those who did not receive a call. The chi-squared test for equality of proportions yielded a test statistic of 40.416 with a p-value of 2.053e-10, strongly indicating that this difference is not due to random chance. The 95% confidence interval for the difference in voting proportions ranged from 14.32% to 26.38%, further supporting the effectiveness of the GOTV calls in increasing voter turnout.
+
+
+# Part B
+```{r, echo=FALSE}
+ggplot(turnout_data, aes(x = AGE, fill = factor(GOTV_call))) +
+  geom_histogram(position = "dodge", bins = 30) +
+  labs(title = "Age distribution by GOTV call status")
+
+ggplot(turnout_data, aes(x = factor(voted1996), fill = factor(GOTV_call))) +
+  geom_bar(position = "dodge") +
+  labs(title = "1996 Voting by GOTV call status")
+
+ggplot(turnout_data, aes(x = factor(MAJORPTY), fill = factor(GOTV_call))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Major Party Affiliation by GOTV call status")
+```
+In analyzing potential confounders for the impact of GOTV calls on voting, it's evident that past voting behavior and political affiliation are influential. The data shows individuals who voted in 1996 were more likely to be called in 1998, and major party members also received more calls. Age distribution did not show a distinct pattern in relation to GOTV calls. These insights suggest that historical voting and party affiliation may affect GOTV call distribution and subsequent voter turnout, indicating their role as confounders.
+
+\newpage
+
+# Part C
+```{r, echo=FALSE}
+match_data <- matchit(GOTV_call ~ voted1996 + AGE + MAJORPTY, data = turnout_data, method = "nearest", ratio = 5)
+summary(match_data, standardize = TRUE)
+matched <- match.data(match_data)
+
+prop_test_results <- prop.test(x = c(sum(matched$GOTV_call == 1 & matched$voted1998 == 1),
+                                     sum(matched$GOTV_call == 0 & matched$voted1998 == 1)),
+                               n = c(sum(matched$GOTV_call == 1), sum(matched$GOTV_call == 0)),
+                               correct = FALSE)
+
+estimate <- prop_test_results$estimate
+conf_int <- prop_test_results$conf.int
+p_value <- prop_test_results$p.value
+
+cat(" Proportion of voters who received a GOTV call and voted in 1998:", round(estimate[1], 4), "\n",
+    "Proportion of voters who did not receive a GOTV call and voted in 1998:", round(estimate[2], 4), "\n",
+    "95% Confidence Interval for the difference in proportions:", 
+    "[", round(conf_int[1], 4), ",", round(conf_int[2], 4), "]", "\n",
+    "P-value for the test of equal proportions:", format.pval(p_value, digits = 4), "\n\n")
+
+```
+In the refined analysis using matched data to account for confounding variables such as past voting behavior, age, and major party affiliation, we observe a maintained positive effect of 'get out the vote' calls on the 1998 Congressional election turnout. The proportion test on the matched data exhibits a 9.78% increase in the likelihood of voting for individuals who received a GOTV call, with a 95% confidence interval for this difference stretching from 0.8% to 13.93%. This outcome, which is statistically significant, underscores the efficacy of GOTV calls in boosting electoral participation, even after adjusting for potential biases in the data.
+
+# Problem 2: Manufacturing flaws in circuit boards
+# Part A
+```{r, echo =FALSE}
+solder_data <- read.csv("/Users/varunramanathan/Downloads/solder.csv")
+ggplot(solder_data, aes(x = Opening, y = skips)) +
+  geom_boxplot() +
+  labs(title = "Effect of Opening Size on Solder Skips", y = "Number of Skips", x = "Opening Size")
+```
+Number of Solder Skips by Opening Size: This boxplot illustrates the relationship between the size of the opening on the solder gun (small, medium, or large) and the number of solder skips. It suggests that as the opening size increases, there is a tendency for the number of skips to increase as well.
+
+```{r, echo =FALSE}
+ggplot(solder_data, aes(x = Solder, y = skips)) +
+  geom_boxplot() +
+  labs(title = "Effect of Solder Thickness on Solder Skips", y = "Number of Skips", x = "Solder Thickness")
+```
+Solder Skips in Relation to Alloy Thickness: This boxplot shows the difference in the number of skips when using thick versus thin solder alloy. The plot indicates that thicker solder tends to result in fewer solder skips, pointing to a potential quality improvement in the manufacturing process.
+
+\newpage
+
+# Part B
+```{r, echo = FALSE}
+model <- lm(skips ~ Opening + Solder + Opening:Solder, data = solder_data)
+summary(model)
+library(broom)
+tidy(model, conf.int = TRUE)
+```
+# Part C
+
+The coefficient for a medium opening size on the solder gun indicates that moving from a small to a medium opening is associated with an increase in the number of skips by approximately 2.41. Similarly, a large opening size is related to an increase of about 2.13 skips compared to a small opening, keeping the solder thickness constant. Conversely, using thick solder is associated with a decrease in skips by approximately 2.28. The interaction between medium opening size and thick solder shows a reduction in skips by 0.74, while a large opening with thick solder surprisingly increases the skips by 9.65, indicating a significant interaction effect.
+
+# Part D
+
+Considering the goal of minimizing the number of manufacturing flaws, the results suggest using thick solder could be beneficial overall. However, when combined with large opening sizes, thick solder seems to exacerbate the problem, as indicated by the large positive coefficient for this interaction. Thus, the most favorable combination for reducing skips would be a small opening size with thick solder, which aligns with the main effect of solder thickness and mitigates the adverse effects seen with larger openings.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
