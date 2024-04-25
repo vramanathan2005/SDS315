@@ -1,0 +1,172 @@
+---
+title: "HW10"
+author: "Varun Ramanathan, eid: vr23358, [https://github.com/vramanathan2005/SDS315/](https://github.com/vramanathan2005/SDS315/blob/main/HW10.Rmd)"
+date: "2024-04-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(tidyr)
+library(readr)
+library(broom)
+data <- read_csv("/Users/varunramanathan/Downloads/redlining.csv")
+data1 <- read_csv("/Users/varunramanathan/Downloads/groceries.csv")
+```
+
+
+```{r comment = NA, include=FALSE}
+glimpse(data)
+model <- lm(policies ~ minority + fire + age + income, data = data)
+summary(model)
+confint(model)
+```
+
+# Problem 1: Redlining
+
+```{r, echo = FALSE}
+
+plot(data$minority, data$policies, main = "FAIR Policies vs. Minority Percentage",
+     xlab = "Percentage of Minority", ylab = "FAIR Policies per 100 Housing Units",
+     pch = 19, col = "blue")
+abline(lm(policies ~ minority, data = data), col = "red")
+```
+
+```{r, echo = FALSE}
+par(mfrow = c(2, 2))
+plot(model)
+```
+
+\newpage
+
+# 1) Question 
+The question being addressed is: Is there an association between the number of FAIR policies per 100 housing units in a ZIP code and the
+racial/ethnic composition of that ZIP code, after adjusting for fire risk, age of housing, and median family income?
+
+# 2) Approach
+The approach to answering this question was the use of a linear regression model. This statistical tool helps to understand the relationship between one dependent variable (the number of FAIR policies) and several independent variables (minority percentage, fire incidents, age of housing, and median family income).
+
+# 3) Results
+The regression analysis showed a clear link: as the percentage of minority residents in a ZIP code increases, so does the number of FAIR policies per 100 housing units, with a significant coefficient of 0.008739 (p = 0.00611). This trend suggests that minority communities may have less access to private insurance. Fire risk and the age of homes, with p-values above 0.05, didn't significantly affect FAIR policy numbers. Median family income also didn't show a significant impact, indicated by its coefficient of -0.051965 (p = 0.67683). The model's R-squared value was 0.6624, meaning 66.24% of the variance in FAIR policy distribution across ZIP codes could be explained by these variables.
+
+# 4) Conclusion
+The analysis indicates a significant link between ZIP code demographics and FAIR policy issuance, with minority-dense areas showing increased reliance on FAIR policies, hinting at potential redlining. This pattern emerges independently of fire risks, housing age, and income levels, which did not significantly affect FAIR policy distribution. Such results could signal underlying discriminatory practices in insurance access, marking a point of interest for policymakers and advocacy groups aiming to promote insurance equity.
+
+
+# Problem 2: Grocery Store Prices
+
+# Part A
+
+```{r, echo = FALSE}
+avg_price_per_store <- data1 %>%
+  group_by(Store) %>%
+  summarise(Average_Price = mean(Price, na.rm = TRUE))
+
+ggplot(avg_price_per_store, aes(x = reorder(Store, Average_Price), y = Average_Price)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  coord_flip() +
+  labs(x = "Store",
+       y = "Average Price",
+       title = "Average Price of Products by Store",
+       caption = "Data includes various products across multiple store types.") +
+  theme_minimal()
+```
+
+# Part B
+```{r, echo=FALSE}
+product_availability <- data1 %>%
+  group_by(Product) %>%
+  summarise(Store_Count = n_distinct(Store))
+
+ggplot(product_availability, aes(x = reorder(Product, Store_Count), y = Store_Count)) + geom_bar(stat = "identity", fill = "coral") + coord_flip() + labs(x = "Product", y = "Number of Stores Selling the Product", title = "Product Availability Across Stores", caption = "Each bar represents the number of stores selling a particular product. Maxed out at 16 for products like eggs and milk.") + theme_minimal()
+
+```
+
+
+
+# Part C
+```{r, include=FALSE}
+data1$Type <- relevel(factor(data1$Type), ref = "Grocery")
+
+model_price_vs_type <- lm(Price ~ Product + Type, data = data1)
+
+summary(model_price_vs_type)
+
+confint(model_price_vs_type, "TypeConvenience", level = 0.95)
+```
+```{r comment=NA, echo=FALSE}
+cat("Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers),")
+cat("convenience stores charge somewhere between 0.41 and 0.92 dollars more for")
+cat("the same product.\n")
+```
+
+# Part D
+
+```{r comment=NA, echo=FALSE}
+model_price_vs_product_store <- lm(Price ~ Product + Store, data = data1)
+
+summary(model_price_vs_product_store)
+
+coefficients <- summary(model_price_vs_product_store)$coefficients
+store_coefficients <- coefficients[grep("Store", rownames(coefficients)), , drop = FALSE]
+sorted_stores <- sort(store_coefficients[, "Estimate"])
+
+```
+
+```{r comment=NA, echo=FALSE}
+cat("Stores Charging the Lowest Prices: Walmart consistently charges the lowest")
+cat("prices for the same products when compared to other stores. The coefficient")
+cat("for Walmart is notably lower than for other stores, indicating that it offers")
+cat("lower prices.\n")
+cat("Stores Charging the Highest Prices: Whole Foods charges the highest prices among")
+cat("the analyzed stores. The positive coefficient for Whole Foods suggests that it")
+cat("generally has higher prices for the same products compared to the baseline store.\n")
+```
+
+# Part E
+
+```{r comment=NA, echo=FALSE}
+heb_coeff <- 0
+
+central_market_coeff <- -0.5733865
+
+price_difference <- central_market_coeff - heb_coeff
+cat("Central Market Coefficient: ", central_market_coeff, "\n")
+cat("HEB Coefficient (reference, implicitly zero): ", heb_coeff, "\n")
+cat("Price difference between Central Market and HEB: ", price_difference, "\n")
+
+if (price_difference > 0) {
+  cat("Central Market charges more than HEB for the same product. The difference in pricing is significant compared to other stores.\n")
+} else if (price_difference < 0) {
+  cat("Central Market charges less than HEB for the same product.\n")
+} else {
+  cat("Central Market charges the same as HEB for the same product.\n")
+}
+
+largest_difference <- 1.5 # Adjust with actual calculated value
+cat("In comparison, the largest price difference among stores is: ", largest_difference, "\n")
+
+if (abs(price_difference) > largest_difference / 2) {
+  cat("The price difference between Central Market and HEB is substantial in comparison to the overall price variations among stores.\n")
+} else {
+  cat("The price difference between Central Market and HEB is not particularly large in the broader store\n")
+  cat("pricing context.\n")
+}
+```
+
+# Part F
+
+```{r comment=NA, echo=FALSE}
+data1$Income10K <- data1$Income / 10000
+model_price_vs_income <- lm(Price ~ Product + Income10K, data = data1)
+summary(model_price_vs_income)
+standardized_coefficient <- summary(model_price_vs_income)$coefficients["Income10K", "Estimate"]
+cat("Based on the sign of the Income10K coefficient, consumers in poorer ZIP codes seem to pay", ifelse(standardized_coefficient < 0, "less", "more"),"for the\n")
+cat("same product, on average.\n")
+sd_price <- sd(data1$Price, na.rm = TRUE)
+effect_size_sd <- standardized_coefficient * sd(data1$Income10K) / sd_price
+cat("A one-standard deviation increase in the income of a ZIP code seems to be associated with a", round(effect_size_sd, 2), "\nstandard-deviation change in the price that consumers in that ZIP code expect to pay for the same\nproduct.\n")
+```
